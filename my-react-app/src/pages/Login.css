@@ -1,0 +1,93 @@
+.login-page {
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top right, var(--bg-surface-hover) 0%, var(--bg-base) 100%);
+}
+
+.login-container {
+  width: 100%;
+  max-width: 450px;
+  padding: 3rem 2.5rem;
+  border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.login-header {
+  margin-bottom: 2rem;
+}
+
+.center-icon {
+  margin: 0 auto 1.5rem;
+  color: var(--primary-500);
+}
+
+.login-header h2 {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.role-selector {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  margin-bottom: 2rem;
+}
+
+.role-card {
+  flex: 1;
+  padding: 1.5rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.role-card:hover {
+  border-color: var(--primary-300);
+  background-color: var(--primary-50);
+}
+[data-theme='dark'] .role-card:hover {
+  background-color: rgba(99, 102, 241, 0.05);
+}
+
+.role-card.active {
+  background-color: var(--primary-50);
+  border-color: var(--primary-500);
+  color: var(--primary-600);
+}
+[data-theme='dark'] .role-card.active {
+  background-color: rgba(99, 102, 241, 0.15);
+  color: var(--primary-400);
+}
+
+.role-card.active .role-icon {
+  color: var(--primary-600);
+}
+[data-theme='dark'] .role-card.active .role-icon {
+  color: var(--primary-400);
+}
+
+.login-btn {
+  width: 100%;
+  padding: 0.85rem;
+  font-size: 1rem;
+}
