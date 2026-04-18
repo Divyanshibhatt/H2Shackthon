@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Plus, Download, Edit2, Trash2, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, Download, Edit2, Trash2, ArrowUpDown, ChevronLeft, ChevronRight, AlertTriangle, X } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { ItemFormModal } from '../components/ItemFormModal';
 import './Inventory.css';
@@ -17,6 +17,7 @@ export const Inventory = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // holds item to delete
 
   // Derived state filtering & searching
   const filteredAndSortedItems = useMemo(() => {
@@ -90,9 +91,14 @@ export const Inventory = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id) => {
-    if(window.confirm('Are you sure you want to delete this item?')) {
-      deleteItem(id);
+  const handleDelete = (item) => {
+    setDeleteConfirm(item);
+  };
+
+  const confirmDelete = () => {
+    if (deleteConfirm) {
+      deleteItem(deleteConfirm.id);
+      setDeleteConfirm(null);
     }
   };
 
@@ -179,7 +185,7 @@ export const Inventory = () => {
                       <td className="text-muted">{item.supplier}</td>
                       <td className="action-cells">
                         <button className="icon-btn edit-btn" onClick={() => handleEdit(item)}><Edit2 size={16}/></button>
-                        <button className="icon-btn delete-btn" onClick={() => handleDelete(item.id)}><Trash2 size={16}/></button>
+                        <button className="icon-btn delete-btn" onClick={() => handleDelete(item)}><Trash2 size={16}/></button>
                       </td>
                     </tr>
                   )
@@ -222,6 +228,38 @@ export const Inventory = () => {
           existingItem={editingItem} 
         />
       )}
+
+      {deleteConfirm && (
+        <div className="modal-overlay animate-fade-in" style={{ zIndex: 10000 }}>
+          <div className="modal-content card glass-panel" style={{ maxWidth: '420px', textAlign: 'center' }}>
+            <div className="modal-header" style={{ justifyContent: 'flex-end' }}>
+              <button className="icon-btn" onClick={() => setDeleteConfirm(null)}><X size={24} /></button>
+            </div>
+            <div style={{ padding: '0.5rem 1.5rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+              <div style={{
+                width: '56px', height: '56px', borderRadius: '50%',
+                background: 'var(--danger-bg)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center'
+              }}>
+                <AlertTriangle size={28} style={{ color: 'var(--danger)' }} />
+              </div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>Delete Item</h2>
+              <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                Are you sure you want to delete <strong style={{ color: 'var(--text-primary)' }}>{deleteConfirm.name}</strong>? This action cannot be undone.
+              </p>
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', width: '100%' }}>
+                <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setDeleteConfirm(null)}>Cancel</button>
+                <button style={{
+                  flex: 1, padding: '0.5rem 1rem', borderRadius: 'var(--radius-md)',
+                  fontWeight: 500, background: 'var(--danger)', color: '#fff',
+                  transition: 'all 150ms ease'
+                }} onClick={confirmDelete}>Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

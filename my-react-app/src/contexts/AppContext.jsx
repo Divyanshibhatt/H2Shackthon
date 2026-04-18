@@ -5,7 +5,7 @@ const AppContext = createContext();
 export const useAppContext = () => useContext(AppContext);
 
 // API BASE URL
-const API_BASE = 'http://localhost:8000';
+const API_BASE = '/api';
 
 const warehouses = ['All Warehouses', 'NY-Main', 'SF-Hub', 'TX-Depot'];
 
@@ -54,9 +54,9 @@ export const AppProvider = ({ children }) => {
       const supData = await supRes.json();
       const logData = await logRes.json();
       
-      setInventory(invData || []);
-      setSuppliers(supData || []);
-      setLogs(logData || []);
+      setInventory(invData ? invData.map(i => ({...i, id: i._id})) : []);
+      setSuppliers(supData ? supData.map(s => ({...s, id: s._id})) : []);
+      setLogs(logData ? logData.map(l => ({...l, id: l._id, item: l.itemName || l.item, qty: l.quantity || l.qty})) : []);
       setIsBackendOnline(true);
     } catch (err) {
       console.warn("Backend offline, using local mock data.", err);
@@ -97,7 +97,7 @@ export const AppProvider = ({ children }) => {
         });
         if (res.ok) {
           const newLog = await res.json();
-          setLogs(prev => [newLog, ...prev]);
+          setLogs(prev => [{...newLog, id: newLog._id, item: newLog.itemName || newLog.item, qty: newLog.quantity || newLog.qty}, ...prev]);
           return;
         }
       } catch (err) {
@@ -125,7 +125,7 @@ export const AppProvider = ({ children }) => {
         });
         if (res.ok) {
           const newItem = await res.json();
-          setInventory(prev => [newItem, ...prev]);
+          setInventory(prev => [{...newItem, id: newItem._id}, ...prev]);
           await addLog('ADD', newItem.name, newItem.quantity);
           return;
         }
@@ -157,15 +157,16 @@ export const AppProvider = ({ children }) => {
         });
         if (res.ok) {
           const newItem = await res.json();
+          const newItemWithId = {...newItem, id: newItem._id};
           setInventory(prev => prev.map(item => {
             if (item.id === id) {
-              const qtyDiff = newItem.quantity - item.quantity;
+              const qtyDiff = newItemWithId.quantity - item.quantity;
               if (qtyDiff !== 0) {
                 addLog(qtyDiff > 0 ? 'RESTOCK' : 'DISPATCH', item.name, qtyDiff);
               } else {
                 addLog('UPDATE', item.name, 0);
               }
-              return newItem;
+              return newItemWithId;
             }
             return item;
           }));
@@ -220,7 +221,7 @@ export const AppProvider = ({ children }) => {
         });
         if (res.ok) {
           const newSupplier = await res.json();
-          setSuppliers(prev => [newSupplier, ...prev]);
+          setSuppliers(prev => [{...newSupplier, id: newSupplier._id}, ...prev]);
           await addLog('ADD', `Supplier: ${newSupplier.name}`, 0);
           return;
         }

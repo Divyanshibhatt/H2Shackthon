@@ -1,10 +1,9 @@
-# Warehouse Management System Backend in Python
-# Tech Stack: Flask + MongoDB (PyMongo)
-# Single-file backend suitable for academic / college project
+# Warehouse Management System Backend in Python + SQLite
+# Single-file backend serving the React Frontend
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from pymongo import MongoClient
+import sqlite3
 from datetime import datetime
 import os
 
@@ -12,106 +11,122 @@ import os
 # 1. APP CONFIGURATION
 # =============================
 
-app = Flask(__name__)
+REACT_BUILD_DIR = os.path.join("my-react-app", "dist")
+app = Flask(__name__, static_folder=REACT_BUILD_DIR, static_url_path="/")
 CORS(app)
 
 PORT = 5000
+DATABASE = "warehouse.db"
 
 # =============================
-# 2. DATABASE CONNECTION
+# 2. DATABASE HELPER
 # =============================
 
-client = MongoClient("mongodb://127.0.0.1:27017/")
-db = client["warehouseDB"]
-
-items_collection = db["items"]
-suppliers_collection = db["suppliers"]
-logs_collection = db["logs"]
+def get_db():
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 # =============================
 # 3. HELPER FUNCTION
 # =============================
 
 def add_log(action, item_name, quantity, user="Admin"):
-    log = {
-        "action": action,
-        "itemName": item_name,
-        "quantity": quantity,
-        "user": user,
-        "timestamp": datetime.utcnow()
-    }
-    logs_collection.insert_one(log)
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO logs (action, itemName, quantity, user, timestamp)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (action, item_name, quantity, user, datetime.utcnow().isoformat()))
+    conn.commit()
+    conn.close()
 
 # =============================
 # 4. INVENTORY ROUTES
 # =============================
 
-# GET all items
 @app.route("/api/items", methods=["GET"])
 def get_items():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM items")
+    rows = cursor.fetchall()
     items = []
-    for item in items_collection.find():
+    for row in rows:
+        item = dict(row)
         item["_id"] = str(item["_id"])
         items.append(item)
+    conn.close()
     return jsonify(items)
 
 
-# ADD item
 @app.route("/api/items", methods=["POST"])
 def add_item():
     data = request.json
-
-    item = {
-        "name": data.get("name"),
-        "category": data.get("category"),
-        "warehouse": data.get("warehouse"),
-        "quantity": data.get("quantity"),
-        "price": data.get("price"),
-        "minStock": data.get("minStock"),
-        "supplier": data.get("supplier"),
-        "createdAt": datetime.utcnow()
-    }
-
-    result = items_collection.insert_one(item)
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO items (name, category, warehouse, quantity, price, minStock, supplier, createdAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        data.get("name"), data.get("category"), data.get("warehouse"),
+        data.get("quantity"), data.get("price"), data.get("minStock"),
+        data.get("supplier"), datetime.utcnow().isoformat()
+    ))
+    conn.commit()
+    inserted_id = cursor.lastrowid
+    
+    cursor.execute("SELECT * FROM items WHERE _id = ?", (inserted_id,))
+    item = dict(cursor.fetchone())
+    item["_id"] = str(item["_id"])
+    conn.close()
 
     add_log("ADD", item["name"], item["quantity"])
-
-    item["_id"] = str(result.inserted_id)
-
     return jsonify(item), 201
 
 
-# UPDATE item
 @app.route("/api/items/<id>", methods=["PUT"])
 def update_item(id):
     data = request.json
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    update_fields = []
+    params = []
+    for key, value in data.items():
+        if key != "_id" and key != "id":
+            update_fields.append(f"{key} = ?")
+            params.append(value)
+            
+    if update_fields:
+        params.append(int(id))
+        query = f"UPDATE items SET {', '.join(update_fields)} WHERE _id = ?"
+        cursor.execute(query, params)
+        conn.commit()
 
-    items_collection.update_one(
-        {"_id": __import__("bson").ObjectId(id)},
-        {"$set": data}
-    )
-
-    updated_item = items_collection.find_one(
-        {"_id": __import__("bson").ObjectId(id)}
-    )
+    cursor.execute("SELECT * FROM items WHERE _id = ?", (int(id),))
+    updated_item = dict(cursor.fetchone())
+    updated_item["_id"] = str(updated_item["_id"])
+    conn.close()
 
     add_log("UPDATE", updated_item.get("name"), updated_item.get("quantity"))
-
-    updated_item["_id"] = str(updated_item["_id"])
-
     return jsonify(updated_item)
 
 
-# DELETE item
 @app.route("/api/items/<id>", methods=["DELETE"])
 def delete_item(id):
-    item = items_collection.find_one_and_delete(
-        {"_id": __import__("bson").ObjectId(id)}
-    )
-
-    if item:
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM items WHERE _id = ?", (int(id),))
+    row = cursor.fetchone()
+    if row:
+        item = dict(row)
+        cursor.execute("DELETE FROM items WHERE _id = ?", (int(id),))
+        conn.commit()
         add_log("DELETE", item.get("name"), item.get("quantity"))
-
+        
+    conn.close()
     return jsonify({"message": "Item deleted"})
 
 
@@ -119,48 +134,59 @@ def delete_item(id):
 # 5. SUPPLIER ROUTES
 # =============================
 
-# GET suppliers
 @app.route("/api/suppliers", methods=["GET"])
 def get_suppliers():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM suppliers")
+    rows = cursor.fetchall()
     suppliers = []
-    for supplier in suppliers_collection.find():
-        supplier["_id"] = str(supplier["_id"])
-        suppliers.append(supplier)
+    for row in rows:
+        sup = dict(row)
+        sup["_id"] = str(sup["_id"])
+        suppliers.append(sup)
+    conn.close()
     return jsonify(suppliers)
 
 
-# ADD supplier
 @app.route("/api/suppliers", methods=["POST"])
 def add_supplier():
     data = request.json
-
-    supplier = {
-        "name": data.get("name"),
-        "email": data.get("email"),
-        "phone": data.get("phone"),
-        "status": data.get("status", "Active"),
-        "createdAt": datetime.utcnow()
-    }
-
-    result = suppliers_collection.insert_one(supplier)
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO suppliers (name, email, phone, status, createdAt)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (
+        data.get("name"), data.get("email"), data.get("phone"),
+        data.get("status", "Active"), datetime.utcnow().isoformat()
+    ))
+    conn.commit()
+    inserted_id = cursor.lastrowid
+    
+    cursor.execute("SELECT * FROM suppliers WHERE _id = ?", (inserted_id,))
+    supplier = dict(cursor.fetchone())
+    supplier["_id"] = str(supplier["_id"])
+    conn.close()
 
     add_log("ADD SUPPLIER", supplier["name"], 0)
-
-    supplier["_id"] = str(result.inserted_id)
-
     return jsonify(supplier), 201
 
 
-# DELETE supplier
 @app.route("/api/suppliers/<id>", methods=["DELETE"])
 def delete_supplier(id):
-    supplier = suppliers_collection.find_one_and_delete(
-        {"_id": __import__("bson").ObjectId(id)}
-    )
-
-    if supplier:
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM suppliers WHERE _id = ?", (int(id),))
+    row = cursor.fetchone()
+    if row:
+        supplier = dict(row)
+        cursor.execute("DELETE FROM suppliers WHERE _id = ?", (int(id),))
+        conn.commit()
         add_log("DELETE SUPPLIER", supplier.get("name"), 0)
-
+        
+    conn.close()
     return jsonify({"message": "Supplier deleted"})
 
 
@@ -170,10 +196,16 @@ def delete_supplier(id):
 
 @app.route("/api/logs", methods=["GET"])
 def get_logs():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM logs ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
     logs = []
-    for log in logs_collection.find().sort("timestamp", -1):
+    for row in rows:
+        log = dict(row)
         log["_id"] = str(log["_id"])
         logs.append(log)
+    conn.close()
     return jsonify(logs)
 
 
@@ -183,16 +215,20 @@ def get_logs():
 
 @app.route("/api/dashboard", methods=["GET"])
 def get_dashboard():
-    total_items = items_collection.count_documents({})
-
-    low_stock = items_collection.count_documents({
-        "$expr": {"$lte": ["$quantity", "$minStock"]}
-    })
-
-    total_value = 0
-
-    for item in items_collection.find():
-        total_value += item.get("quantity", 0) * item.get("price", 0)
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT COUNT(*) as total_items FROM items")
+    total_items = cursor.fetchone()["total_items"]
+    
+    cursor.execute("SELECT COUNT(*) as low_stock FROM items WHERE quantity <= minStock")
+    low_stock = cursor.fetchone()["low_stock"]
+    
+    cursor.execute("SELECT SUM(quantity * price) as total_value FROM items")
+    row = cursor.fetchone()
+    total_value = row["total_value"] if row["total_value"] else 0
+    
+    conn.close()
 
     return jsonify({
         "totalItems": total_items,
@@ -208,35 +244,30 @@ def get_dashboard():
 @app.route("/api/login", methods=["POST"])
 def login():
     data = request.json
-
     role = data.get("role")
-
     if not role:
         return jsonify({"message": "Role required"}), 400
-
     return jsonify({
         "message": "Login successful",
         "role": role
     })
 
+# =============================
+# 9. SERVE REACT FRONTEND
+# =============================
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
 
 # =============================
-# 9. RUN SERVER
+# 10. RUN SERVER
 # =============================
 
 if __name__ == "__main__":
     print("Server running on port", PORT)
     app.run(debug=True, port=PORT)
-
-
-# =============================
-# INSTALLATION COMMANDS
-# =============================
-
-"""
-
-pip install flask flask-cors pymongo
-
-python app.py
-
-"""
