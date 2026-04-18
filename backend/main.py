@@ -113,24 +113,44 @@ def create_log(log: schemas.LogCreate, db: Session = Depends(get_db)):
     db.refresh(db_log)
     return db_log
 
-# --- Ollama AI Proxy ---
+# --- Cloud AI Proxy (Groq) ---
 
 @app.post("/ai/chat")
 async def ai_chat(request: Request):
-    """Proxy requests to Ollama running on localhost:11434"""
+    """Proxy requests to Groq Cloud (Free LLaMA 3) instead of local Ollama"""
     try:
         body = await request.json()
-        data = json.dumps(body).encode('utf-8')
-        req = urllib.request.Request(
-            'http://localhost:11434/api/generate',
-            data=data,
-            headers={'Content-Type': 'application/json'}
-        )
-        with urllib.request.urlopen(req, timeout=60) as response:
+        system_prompt = body.get("system", "")
+        user_prompt = body.get("prompt", "")
+        
+        # ⚠️ GET YOUR FREE KEY at https://console.groq.com
+        GROQ_API_KEY = "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"
+        
+        if not GROQ_API_KEY or GROQ_API_KEY == "YOUR_GROQ_API_KEY_HERE":
+            return {"response": "Please paste your free Groq API key in main.py to enable the AI."}
+
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "llama3-8b-8192", # Using cloud LLaMA 3
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            "max_tokens": 150
+        }
+        
+        req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as response:
             result = json.loads(response.read().decode('utf-8'))
-            return result
+            answer = result["choices"][0]["message"]["content"]
+            return {"response": answer}
+            
     except Exception as e:
         return JSONResponse(
             status_code=503,
-            content={"error": f"Ollama unavailable: {str(e)}"}
+            content={"error": f"AI unavailable: {str(e)}"}
         )

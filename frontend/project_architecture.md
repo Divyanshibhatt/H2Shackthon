@@ -2,79 +2,63 @@
 
 ## High-Level Flow
 
-```mermaid
-graph TD
-    A["index.html<br/><i>Browser entry point</i>"] --> B["main.jsx<br/><i>React bootstrap + AppProvider</i>"]
-    B --> C["AppContext.jsx<br/><i>Global state, API calls,<br/>fallback mock data</i>"]
-    B --> D["App.jsx<br/><i>React Router setup</i>"]
-    D --> E["DashboardLayout.jsx<br/><i>Shell: Sidebar + Header + Outlet</i>"]
-
-    E --> F["Sidebar.jsx<br/><i>Navigation links</i>"]
-    E --> G["Header.jsx<br/><i>Search, theme toggle,<br/>notification dropdown,<br/>warehouse selector</i>"]
-    E --> H["Page Router Outlet"]
-
-    H --> I["Dashboard.jsx<br/><i>KPI cards, charts,<br/>AI Chatbot (Ollama)</i>"]
-    H --> J["Inventory.jsx<br/><i>Table with add/edit/delete,<br/>search, filter, sort, export</i>"]
-    H --> K["Analytics.jsx<br/><i>Bar, Pie, Line charts</i>"]
-    H --> L["Suppliers.jsx<br/><i>Supplier table,<br/>add/delete modal</i>"]
-    H --> M["ActivityLogs.jsx<br/><i>Action history log</i>"]
-    H --> N["Login.jsx<br/><i>Role switcher</i>"]
-
-    J --> O["ItemFormModal.jsx<br/><i>Add/Edit item form popup</i>"]
-
-    C -->|"fetch API"| P["FastAPI Backend<br/><i>localhost:8000</i>"]
-    P --> Q["SQLite Database<br/><i>warehouse.db</i>"]
-    P -->|"/ai/chat proxy"| R["Ollama LLM<br/><i>llama3.2:1b<br/>localhost:11434</i>"]
-
-    style A fill:#2563EB,color:#fff
-    style B fill:#2563EB,color:#fff
-    style C fill:#10B981,color:#fff
-    style D fill:#2563EB,color:#fff
-    style E fill:#60A5FA,color:#111
-    style F fill:#60A5FA,color:#111
-    style G fill:#60A5FA,color:#111
-    style I fill:#F9FAFB,color:#111,stroke:#2563EB
-    style J fill:#F9FAFB,color:#111,stroke:#2563EB
-    style K fill:#F9FAFB,color:#111,stroke:#2563EB
-    style L fill:#F9FAFB,color:#111,stroke:#2563EB
-    style M fill:#F9FAFB,color:#111,stroke:#2563EB
-    style N fill:#F9FAFB,color:#111,stroke:#2563EB
-    style O fill:#10B981,color:#fff
-    style P fill:#f59e0b,color:#111
-    style Q fill:#f59e0b,color:#111
-    style R fill:#a78bfa,color:#111
+```text
+[Browser]
+   │
+   └── index.html
+        │
+        └── main.jsx (React bootstrap + AppProvider)
+             │
+             ├── AppContext.jsx (Global state, API calls, fallback mock data)
+             │    │
+             │    ├── fetch() ──> [FastAPI Backend localhost:8000] ──> [SQLite warehouse.db]
+             │    └── /ai/chat ─> [Ollama LLM llama3.2:1b localhost:11434]
+             │
+             └── App.jsx (React Router setup)
+                  │
+                  └── DashboardLayout.jsx
+                       ├── Sidebar.jsx (Navigation links)
+                       ├── Header.jsx (Search, theme, warehouse selector)
+                       └── Page Router Outlet
+                            ├── Dashboard.jsx (KPI cards, charts, AI Chatbot)
+                            ├── Inventory.jsx (Add/Edit data table)
+                            │    └── ItemFormModal.jsx
+                            ├── Analytics.jsx (Charts)
+                            ├── Suppliers.jsx (Supplier DB)
+                            ├── ActivityLogs.jsx (Action history)
+                            └── Login.jsx (Role switcher)
 ```
 
 ---
 
 ## Full-Stack Architecture
 
-```mermaid
-graph LR
-    subgraph Frontend ["Frontend (React + Vite — :5173)"]
-        UI["React Components"]
-        CTX["AppContext (State)"]
-    end
-
-    subgraph Backend ["Backend (FastAPI — :8000)"]
-        API["/items, /suppliers, /logs"]
-        AI["/ai/chat (Ollama Proxy)"]
-    end
-
-    subgraph Data ["Data Layer"]
-        DB["SQLite (warehouse.db)"]
-        LLM["Ollama (llama3.2:1b — :11434)"]
-    end
-
-    UI --> CTX
-    CTX -->|"fetch() calls"| API
-    CTX -->|"AI questions"| AI
-    API --> DB
-    AI --> LLM
-
-    style Frontend fill:#111,color:#f8fafc,stroke:#2563EB
-    style Backend fill:#111,color:#f8fafc,stroke:#f59e0b
-    style Data fill:#111,color:#f8fafc,stroke:#a78bfa
+```text
++------------------------------------------+
+|  Frontend (React + Vite — PORT 5173)     |
+|                                          |
+|  [ React Components (UI) ]               |
+|            |                             |
+|            v                             |
+|  [ AppContext (Global State) ]           |
+|            |             |               |
++------------|-------------|---------------+
+             |             |
+ (fetch)     |             | (AI chat)
+             v             v
++------------------------------------------+
+|  Backend (FastAPI — PORT 8000)           |
+|                                          |
+|  [ /items, /suppliers ]  [ /ai/chat ]    |
+|            |                   |         |
++------------|-------------------|---------+
+             |                   |
+             v                   v
++------------------------------------------+
+|  Data Layer                              |
+|                                          |
+|  [ SQLite database ]     [ Ollama LLM ]  |
++------------------------------------------+
 ```
 
 ---
@@ -175,29 +159,32 @@ graph LR
 
 ## Data Flow Summary
 
-```mermaid
-graph LR
-    A["AppContext<br/>(Global State)"] -->|inventory| B["Dashboard"]
-    A -->|inventory| C["Inventory"]
-    A -->|inventory| D["Analytics"]
-    A -->|suppliers| E["Suppliers"]
-    A -->|logs| F["Activity Logs"]
-    A -->|"theme, role,<br/>isBackendOnline"| G["Header"]
-    
-    C -->|addItem, updateItem| A
-    C -->|deleteItem| A
-    E -->|addSupplier, deleteSupplier| A
-
-    A -->|"fetch() API"| H["FastAPI :8000"]
-    H -->|"CRUD"| I["SQLite DB"]
-    H -->|"/ai/chat"| J["Ollama LLM"]
-
-    B -->|"AI questions"| H
-
-    style A fill:#10B981,color:#fff
-    style H fill:#f59e0b,color:#111
-    style I fill:#f59e0b,color:#111
-    style J fill:#a78bfa,color:#111
+```text
+  +-------------------------------------------------------------+
+  |                   [ AppContext (Global State) ]             |
+  |                                                             |
+  |   -- (inventory) --> Dashboard, Inventory, Analytics        |
+  |   -- (suppliers) --> Suppliers                              |
+  |   -- (logs) -----> Activity Logs                            |
+  |   -- (config) ---> Header                                   |
+  |                                                             |
+  |   <-- (addItem/updateItem/deleteItem) ---- Inventory        |
+  |   <-- (addSupplier/deleteSupplier) ------- Suppliers        |
+  +-------------------------------------------------------------+
+               |                                 |
+           (fetch API)                      (AI questions)
+               |                                 |
+               v                                 v
+  +-------------------------+        +--------------------------+
+  |  FastAPI Backend :8000  |        |      Ollama LLM local    |
+  +-------------------------+        +--------------------------+
+               |
+           (SQL CRUD)
+               |
+               v
+  +-------------------------+
+  | SQLite DB warehouse.db  |
+  +-------------------------+
 ```
 
 > **Dual-mode operation:** AppContext auto-detects the backend on startup. When online, all CRUD operations persist to the SQLite database. When offline, everything works with local mock data. The AI chatbot requires both the backend and Ollama to be running.
