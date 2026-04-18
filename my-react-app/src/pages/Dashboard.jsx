@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { PackageOpen, TrendingUp, AlertCircle, Zap, Activity } from 'lucide-react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { PackageOpen, TrendingUp, AlertCircle, Activity, Sparkles, Send, Loader } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import './Dashboard.css';
@@ -29,15 +29,60 @@ export const Dashboard = () => {
 
   const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#14b8a6', '#f59e0b'];
 
-  // AI Suggestions feature
-  const getAISuggestions = () => {
-    return lowStockItems.map(item => ({
-      ...item,
-      suggestion: `Demand is trending up. Restock ${Math.ceil(item.minStock * 2.5)} units to prevent stockout next week.`
-    })).slice(0, 3);
+  // --- AI Chat State ---
+  const [chatMessages, setChatMessages] = useState([
+    { role: 'ai', text: 'Hi! I\'m your Inventory Analyst. Ask me anything about your stock, suppliers, or trends.' }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
+  const handleAiSend = async () => {
+    const question = chatInput.trim();
+    if (!question || isAiLoading) return;
+
+    setChatMessages(prev => [...prev, { role: 'user', text: question }]);
+    setChatInput('');
+    setIsAiLoading(true);
+
+    // Build context from live inventory data
+    const inventorySummary = filteredInventory.map(i =>
+      `- ${i.name}: ${i.quantity} units, $${i.price}, category=${i.category}, warehouse=${i.warehouse}, minStock=${i.minStock}`
+    ).join('\n');
+    const lowStockSummary = lowStockItems.map(i => `${i.name} (${i.quantity}/${i.minStock})`).join(', ');
+
+    const systemPrompt = `You are an AI inventory analyst for a warehouse management system. Answer concisely in 2-3 sentences MAX. Use the live data below.
+
+Inventory (${filteredInventory.length} items, total ${totalItems} units, value $${totalValue.toFixed(2)}):
+${inventorySummary}
+
+Low stock items: ${lowStockSummary || 'None'}
+Active warehouse: ${activeWarehouse}`;
+
+    try {
+      const res = await fetch('http://localhost:8000/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama3.2:1b',
+          prompt: question,
+          system: systemPrompt,
+          stream: false
+        })
+      });
+      const data = await res.json();
+      setChatMessages(prev => [...prev, { role: 'ai', text: data.response || 'Sorry, I couldn\'t process that.' }]);
+    } catch (err) {
+      setChatMessages(prev => [...prev, { role: 'ai', text: '⚠️ Ollama is not running. Start it with: open -a Ollama' }]);
+    }
+    setIsAiLoading(false);
   };
 
-  const aiSuggestions = getAISuggestions();
+
 
   return (
     <div className="dashboard-page animate-fade-in">
@@ -107,28 +152,42 @@ export const Dashboard = () => {
             </div>
           </div>
 
-          <div className="card ai-card">
-            <div className="card-header ai-header">
-              <Zap size={20} className="ai-icon" />
-              <h3 className="card-title">AI Smart Suggestions</h3>
+          {/* AI Chat Section */}
+          <div className="card ai-chat-card">
+            <div className="card-header ai-chat-header">
+              <Sparkles size={18} className="ai-sparkle" />
+              <h3 className="card-title">AI Inventory Analyst</h3>
+              <span className="ai-model-badge">llama3.2</span>
             </div>
-            <div className="ai-list">
-              {aiSuggestions.length === 0 ? (
-                <p className="no-data-text">All stocks look optimal based on current demand patterns.</p>
-              ) : (
-                aiSuggestions.map(item => (
-                  <div key={item.id} className="ai-item">
-                    <div className="ai-item-header">
-                      <strong>{item.name}</strong> 
-                      <span className="badge warning">Only {item.quantity} left</span>
-                    </div>
-                    <p className="ai-item-suggestion">{item.suggestion}</p>
-                    <button className="btn-primary ai-reorder-btn">Auto Draft Po</button>
-                  </div>
-                ))
+            <div className="ai-chat-messages">
+              {chatMessages.map((msg, i) => (
+                <div key={i} className={`ai-msg ${msg.role}`}>
+                  {msg.role === 'ai' && <Sparkles size={14} className="ai-msg-icon" />}
+                  <p>{msg.text}</p>
+                </div>
+              ))}
+              {isAiLoading && (
+                <div className="ai-msg ai">
+                  <Loader size={14} className="ai-msg-icon spin" />
+                  <p>Analyzing your data...</p>
+                </div>
               )}
+              <div ref={chatEndRef} />
             </div>
+            <form className="ai-chat-input-row" onSubmit={(e) => { e.preventDefault(); handleAiSend(); }}>
+              <input
+                className="input-field ai-chat-input"
+                placeholder="Ask about your inventory..."
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+              />
+              <button type="submit" className="btn-primary ai-send-btn" disabled={isAiLoading}>
+                <Send size={16} />
+              </button>
+            </form>
           </div>
+
+
 
         </div>
 

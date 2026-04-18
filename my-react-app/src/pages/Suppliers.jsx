@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, Trash2, X, AlertTriangle } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import '../components/ItemFormModal.css';
 
@@ -25,9 +25,16 @@ export const Suppliers = () => {
     setIsModalOpen(false);
   };
 
-  const handleDelete = (id) => {
-    if(window.confirm('Remove this supplier?')) {
-      deleteSupplier(id);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  const handleDelete = (supplier) => {
+    setDeleteConfirm(supplier);
+  };
+
+  const confirmDelete = () => {
+    if (deleteConfirm) {
+      deleteSupplier(deleteConfirm.id);
+      setDeleteConfirm(null);
     }
   };
 
@@ -68,7 +75,7 @@ export const Suppliers = () => {
                     </span>
                   </td>
                   <td className="action-cells">
-                     <button className="icon-btn delete-btn" onClick={() => handleDelete(sup.id)}><Trash2 size={16}/></button>
+                     <button className="icon-btn delete-btn" onClick={() => handleDelete(sup)}><Trash2 size={16}/></button>
                   </td>
                 </tr>
               ))}
@@ -115,6 +122,37 @@ export const Suppliers = () => {
                 <button type="submit" className="btn-primary">Add Supplier</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirm && (
+        <div className="modal-overlay animate-fade-in" style={{ zIndex: 10000 }}>
+          <div className="modal-content card glass-panel" style={{ maxWidth: '420px', textAlign: 'center' }}>
+            <div className="modal-header" style={{ justifyContent: 'flex-end' }}>
+              <button className="icon-btn" onClick={() => setDeleteConfirm(null)}><X size={24} /></button>
+            </div>
+            <div style={{ padding: '0.5rem 1.5rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+              <div style={{
+                width: '56px', height: '56px', borderRadius: '50%',
+                background: 'var(--danger-bg)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center'
+              }}>
+                <AlertTriangle size={28} style={{ color: 'var(--danger)' }} />
+              </div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>Remove Supplier</h2>
+              <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                Are you sure you want to remove <strong style={{ color: 'var(--text-primary)' }}>{deleteConfirm.name}</strong>? This action cannot be undone.
+              </p>
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', width: '100%' }}>
+                <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setDeleteConfirm(null)}>Cancel</button>
+                <button style={{
+                  flex: 1, padding: '0.5rem 1rem', borderRadius: 'var(--radius-md)',
+                  fontWeight: 500, background: 'var(--danger)', color: '#fff',
+                  transition: 'all 150ms ease'
+                }} onClick={confirmDelete}>Delete</button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -52,13 +52,13 @@
 }
 
 [data-theme='dark'] {
-  --bg-base: #0f172a; /* Slate 900 */
-  --bg-surface: #1e293b; /* Slate 800 */
-  --bg-surface-hover: #334155; /* Slate 700 */
-  --text-primary: #f8fafc; /* Slate 50 */
-  --text-secondary: #cbd5e1; /* Slate 300 */
-  --text-muted: #94a3b8; /* Slate 400 */
-  --border-color: #334155; /* Slate 700 */
+  --bg-base: #000000; /* True Black */
+  --bg-surface: #111111; /* Near Black */
+  --bg-surface-hover: #1a1a1a; /* Dark Grey */
+  --text-primary: #f8fafc;
+  --text-secondary: #a1a1aa; /* Zinc 400 */
+  --text-muted: #71717a; /* Zinc 500 */
+  --border-color: #27272a; /* Zinc 800 */
   
   --primary-500: #60A5FA; /* Blue 400 */
   --primary-600: #3b82f6; /* Blue 500 */

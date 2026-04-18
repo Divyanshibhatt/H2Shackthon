@@ -217,3 +217,132 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- AI Chat Card ---- */
+.ai-chat-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0 !important;
+  overflow: hidden;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.ai-chat-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-color) !important;
+  margin-bottom: 0 !important;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, transparent 100%);
+}
+
+.ai-sparkle {
+  color: #a78bfa;
+}
+
+.ai-model-badge {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.5rem;
+  background: rgba(99, 102, 241, 0.12);
+  color: #a78bfa;
+  border-radius: 9999px;
+}
+
+.ai-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 160px;
+  max-height: 260px;
+}
+
+.ai-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  max-width: 90%;
+  animation: slideUpFade 0.3s ease forwards;
+}
+
+.ai-msg.ai {
+  align-self: flex-start;
+}
+
+.ai-msg.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.ai-msg.ai p {
+  background: var(--bg-base);
+  border: 1px solid var(--border-color);
+  border-radius: 0 var(--radius-lg) var(--radius-lg) var(--radius-lg);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.ai-msg.user p {
+  background: var(--primary-600);
+  color: #fff;
+  border-radius: var(--radius-lg) 0 var(--radius-lg) var(--radius-lg);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.ai-msg-icon {
+  min-width: 14px;
+  margin-top: 6px;
+  color: #a78bfa;
+}
+
+.spin {
+  animation: spinLoader 1s linear infinite;
+}
+
+@keyframes spinLoader {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.ai-chat-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-base);
+}
+
+.ai-chat-input {
+  flex: 1;
+  border: none !important;
+  background: transparent !important;
+  padding: 0.5rem 0.25rem !important;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.ai-send-btn {
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+}
+
+.ai-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
