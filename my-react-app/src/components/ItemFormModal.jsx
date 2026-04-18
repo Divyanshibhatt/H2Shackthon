@@ -134,11 +134,23 @@ export const ItemFormModal = ({ isOpen, onClose, existingItem }) => {
             </div>
             <div className="form-group">
               <label className="form-label">Supplier</label>
-              <select name="supplier" value={formData.supplier} onChange={handleChange} className="input-field">
-                {suppliers.map(s => (
-                  <option key={s.id} value={s.name}>{s.name}</option>
-                ))}
-              </select>
+              {suppliers.length > 0 ? (
+                <select name="supplier" value={formData.supplier} onChange={handleChange} className="input-field">
+                  <option value="">Select Supplier</option>
+                  {suppliers.map(s => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <input 
+                  required
+                  name="supplier"
+                  value={formData.supplier}
+                  onChange={handleChange}
+                  className="input-field" 
+                  placeholder="e.g. Acme Corp" 
+                />
+              )}
             </div>
           </div>
           

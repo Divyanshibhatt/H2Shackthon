@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Plus, Download, Edit2, Trash2, ArrowUpDown, ChevronLeft, ChevronRight, ScanLine } from 'lucide-react';
+import { Search, Plus, Download, Edit2, Trash2, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { ItemFormModal } from '../components/ItemFormModal';
 import './Inventory.css';
@@ -101,14 +101,6 @@ export const Inventory = () => {
     setIsModalOpen(true);
   };
 
-  // Mock Barcode Scanner
-  const handleBarcodeScan = () => {
-    const barcode = prompt('Simulate Barcode Scan (Enter Item Name):');
-    if (barcode) {
-      setSearchTerm(barcode);
-    }
-  };
-
   const uniqueCategories = ['All', ...new Set(inventory.map(i => i.category))];
 
   return (
@@ -119,9 +111,6 @@ export const Inventory = () => {
           <p className="page-subtitle">Manage your stock across {activeWarehouse}</p>
         </div>
         <div className="header-actions">
-          <button className="btn-secondary" onClick={handleBarcodeScan} title="Scan Barcode">
-            <ScanLine size={18} /> Scan
-          </button>
           <button className="btn-secondary" onClick={handleExportCSV}>
             <Download size={18} /> Export
           </button>
@@ -141,14 +130,14 @@ export const Inventory = () => {
               placeholder="Search items or suppliers..." 
               className="search-input"
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
             />
           </div>
           
           <select 
             className="input-field filter-select"
             value={filterCategory}
-            onChange={e => setFilterCategory(e.target.value)}
+            onChange={e => { setFilterCategory(e.target.value); setCurrentPage(1); }}
           >
             {uniqueCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
           </select>
@@ -186,7 +175,7 @@ export const Inventory = () => {
                           {item.quantity} {isLowStock ? '(Low)' : ''}
                         </span>
                       </td>
-                      <td>${item.price.toLocaleString()}</td>
+                      <td>${(Number(item.price) || 0).toLocaleString()}</td>
                       <td className="text-muted">{item.supplier}</td>
                       <td className="action-cells">
                         <button className="icon-btn edit-btn" onClick={() => handleEdit(item)}><Edit2 size={16}/></button>
