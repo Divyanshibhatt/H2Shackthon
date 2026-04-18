@@ -124,7 +124,7 @@ async def ai_chat(request: Request):
         user_prompt = body.get("prompt", "")
         
         # ⚠️ GET YOUR FREE KEY at https://console.groq.com
-        GROQ_API_KEY = "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"
+        GROQ_API_KEY = "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"
         
         if not GROQ_API_KEY or GROQ_API_KEY == "YOUR_GROQ_API_KEY_HERE":
             return {"response": "Please paste your free Groq API key in main.py to enable the AI."}
@@ -132,10 +132,11 @@ async def ai_chat(request: Request):
         url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {GROQ_API_KEY}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "WarehouseApp/1.0"
         }
         payload = {
-            "model": "llama3-8b-8192", # Using cloud LLaMA 3
+            "model": "llama-3.1-8b-instant", # Updated active Llama 3 model
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -143,8 +144,10 @@ async def ai_chat(request: Request):
             "max_tokens": 150
         }
         
+        import ssl
+        ssl_context = ssl._create_unverified_context()
         req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers=headers)
-        with urllib.request.urlopen(req, timeout=10) as response:
+        with urllib.request.urlopen(req, timeout=15, context=ssl_context) as response:
             result = json.loads(response.read().decode('utf-8'))
             answer = result["choices"][0]["message"]["content"]
             return {"response": answer}

@@ -75,7 +75,7 @@ Active warehouse: ${activeWarehouse}`;
         })
       });
       const data = await res.json();
-      setChatMessages(prev => [...prev, { role: 'ai', text: data.response || 'Sorry, I couldn\'t process that.' }]);
+      setChatMessages(prev => [...prev, { role: 'ai', text: data.response || data.error || 'Sorry, I couldn\'t process that.' }]);
     } catch (err) {
       setChatMessages(prev => [...prev, { role: 'ai', text: '⚠️ Ollama is not running. Start it with: open -a Ollama' }]);
     }
