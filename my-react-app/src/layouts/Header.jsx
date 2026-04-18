@@ -1,10 +1,10 @@
 import React from 'react';
-import { Search, Bell, Sun, Moon, UserCircle } from 'lucide-react';
+import { Search, Bell, Sun, Moon, UserCircle, Cloud, CloudOff } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import './Header.css';
 
 export const Header = () => {
-  const { theme, toggleTheme, userRole, warehouses, activeWarehouse, setActiveWarehouse, inventory } = useAppContext();
+  const { theme, toggleTheme, userRole, warehouses, activeWarehouse, setActiveWarehouse, inventory, isBackendOnline } = useAppContext();
   
   const lowStockItems = inventory.filter(item => item.quantity <= item.minStock);
 
@@ -14,6 +14,10 @@ export const Header = () => {
         <div className="search-bar">
           <Search size={18} className="search-icon" />
           <input type="text" placeholder="Search inventory..." className="search-input" />
+        </div>
+        <div className={`connection-status ${isBackendOnline ? 'online' : 'offline'}`} title={isBackendOnline ? 'Database Connected' : 'Database Offline (Preview Mode)'}>
+          {isBackendOnline ? <Cloud size={16} /> : <CloudOff size={16} />}
+          <span>{isBackendOnline ? 'Connected' : 'Offline'}</span>
         </div>
       </div>
       

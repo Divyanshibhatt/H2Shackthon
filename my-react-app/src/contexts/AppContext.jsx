@@ -262,7 +262,8 @@ export const AppProvider = ({ children }) => {
     warehouses, activeWarehouse, setActiveWarehouse,
     inventory, addItem, updateItem, deleteItem,
     suppliers, addSupplier, deleteSupplier,
-    logs, addLog
+    logs, addLog,
+    isBackendOnline
   };
 
   return (
