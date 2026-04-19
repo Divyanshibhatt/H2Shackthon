@@ -5,7 +5,7 @@ const AppContext = createContext();
 export const useAppContext = () => useContext(AppContext);
 
 // API BASE URL
-const API_BASE = 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 const warehouses = ['All Warehouses', 'NY-Main', 'SF-Hub', 'TX-Depot'];
 
